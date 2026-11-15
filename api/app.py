@@ -48,7 +48,7 @@ def init_db():
 def health():
     return jsonify({"status": "ok"}), 200
 
-@app.route("/notes", methods=["GET"])
+@app.route("/api/notes", methods=["GET"])
 def get_notes():
     conn = get_db_connection()
     with conn.cursor() as cursor:
@@ -69,7 +69,7 @@ def get_notes():
 
     return jsonify(notes), 200
 
-@app.route("/notes", methods=["POST"])
+@app.route("/api/notes", methods=["POST"])
 def create_note():
     title = request.form.get("title")
     content = request.form.get("content")
