@@ -1,3 +1,4 @@
+from botocore.exceptions import ClientError
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pymysql
@@ -54,6 +55,18 @@ def get_notes():
         cursor.execute("SELECT * FROM notes ORDER BY created_at DESC")
         notes = cursor.fetchall()
     conn.close()
+
+    for note in notes:
+        if note.get("file_url"):
+            try:
+                note["file_url"] = s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': S3_BUCKET, 'Key': note["file_url"]},
+                    ExpiresIn=300
+                )
+            except ClientError:
+                note["file_url"] = None
+
     return jsonify(notes), 200
 
 @app.route("/notes", methods=["POST"])
@@ -66,17 +79,16 @@ def create_note():
     if file:
         file_key = f"{uuid.uuid4()}-{file.filename}"
         s3.upload_fileobj(file, S3_BUCKET, file_key)
-        file_url = f"https://{S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{file_key}"
 
     conn = get_db_connection()
     with conn.cursor() as cursor:
         cursor.execute(
             "INSERT INTO notes (title, content, file_url, created_at) VALUES (%s, %s, %s, %s)",
-            (title, content, file_url, datetime.utcnow())
+            (title, content, file_key, datetime.utcnow())
         )
     conn.commit()
     conn.close()
-    return jsonify({"message": "Note created", "file_url": file_url}), 201
+    return jsonify({"message": "Note created"}), 201
 
 if __name__ == "__main__":
     init_db()
