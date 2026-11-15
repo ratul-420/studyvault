@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>StudyVault</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; background: #f4f4f4; }
+  h1 { color: #2c3e50; }
+  form { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+  input, textarea { width: 100%; padding: 8px; margin: 6px 0 12px; box-sizing: border-box; }
+  button { background: #2c3e50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+  .note { background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px; }
+  .note h3 { margin: 0 0 5px; }
+  .note a { color: #2980b9; }
+  #apiUrlBox { background: #fff3cd; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<h1>📚 StudyVault</h1>
+<div id="apiUrlBox">API URL: <input type="text" id="apiUrl" style="width:300px" value=""></div>
+
+<form id="noteForm">
+  <label>Title</label>
+  <input type="text" id="title" required>
+  <label>Content</label>
+  <textarea id="content" rows="3"></textarea>
+  <label>Attach file (optional)</label>
+  <input type="file" id="file">
+  <button type="submit">Add Note</button>
+</form>
+
+<div id="notesList"></div>
+
+<script>
+  function getApiUrl() {
+    return document.getElementById("apiUrl").value.replace(/\/$/, "");
+  }
+
+  async function loadNotes() {
+    const res = await fetch(getApiUrl() + "/notes");
+    const notes = await res.json();
+    const list = document.getElementById("notesList");
+    list.innerHTML = "";
+    notes.forEach(note => {
+      const div = document.createElement("div");
+      div.className = "note";
+      div.innerHTML = `
+        <h3>${note.title}</h3>
+        <p>${note.content || ""}</p>
+        ${note.file_url ? `<a href="${note.file_url}" target="_blank">📎 View attached file</a>` : ""}
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  document.getElementById("noteForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append("title", document.getElementById("title").value);
+    formData.append("content", document.getElementById("content").value);
+    const fileInput = document.getElementById("file");
+    if (fileInput.files[0]) formData.append("file", fileInput.files[0]);
+
+    await fetch(getApiUrl() + "/notes", { method: "POST", body: formData });
+    document.getElementById("noteForm").reset();
+    loadNotes();
+  });
+
+  // Pre-fill API URL if saved before
+  const saved = localStorage.getItem("apiUrl");
+  if (saved) document.getElementById("apiUrl").value = saved;
+  document.getElementById("apiUrl").addEventListener("change", (e) => {
+    localStorage.setItem("apiUrl", e.target.value);
+  });
+
+  loadNotes();
+</script>
+
+</body>
+</html>
