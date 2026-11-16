@@ -48,6 +48,10 @@ def init_db():
 def health():
     return jsonify({"status": "ok"}), 200
 
+@app.route("/api/health", methods=["GET"])
+def api_health():
+    return jsonify({"status": "ok"}), 200
+
 @app.route("/api/notes", methods=["GET"])
 def get_notes():
     conn = get_db_connection()
